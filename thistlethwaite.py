@@ -1,6 +1,82 @@
 from copy import deepcopy
 from random import *
 
+import bisect
+
+def cmp(a,b):
+    return (a > b) - (a < b)
+    
+# next_permutation copied from here:
+# http://blog.bjrn.se/2008/04/lexicographic-permutations-using.html
+
+def next_permutation(seq, pred=cmp):
+    """Like C++ std::next_permutation() but implemented as
+    generator. Yields copies of seq."""
+
+    def reverse(seq, start, end):
+        # seq = seq[:start] + reversed(seq[start:end]) + \
+        #       seq[end:]
+        end -= 1
+        if end <= start:
+            return
+        while True:
+            seq[start], seq[end] = seq[end], seq[start]
+            if start == end or start+1 == end:
+                return
+            start += 1
+            end -= 1
+    
+    if not seq:
+        raise StopIteration
+
+    try:
+        seq[0]
+    except TypeError:
+        raise TypeError("seq must allow random access.")
+
+    first = 0
+    last = len(seq)
+    seq = seq[:]
+
+    # Yield input sequence as the STL version is often
+    # used inside do {} while.
+    yield seq
+    
+    if last == 1:
+        raise StopIteration
+
+    while True:
+        next = last - 1
+
+        while True:
+            # Step 1.
+            next1 = next
+            next -= 1
+            
+            if pred(seq[next], seq[next1]) < 0:
+                # Step 2.
+                mid = last - 1
+                while not (pred(seq[next], seq[mid]) < 0):
+                    mid -= 1
+                seq[next], seq[mid] = seq[mid], seq[next]
+                
+                # Step 3.
+                reverse(seq, next1, last)
+
+                # Change to yield references to get rid of
+                # (at worst) |seq|! copy operations.
+                yield seq[:]
+                break
+            if next == first:
+                raise StopIteration
+    raise StopIteration
+
+z = [0]*8+[1]*4
+eperm1 = list(next_permutation(z))
+eperm1[0] = z # I don't know why next_permutation reverses the first item
+
+#n = bisect.bisect(x, [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0])-1
+
 def turn_once(pos,facenum):
     turn_table = [
         #           corner pos,      corner orient,
@@ -55,6 +131,11 @@ def int_to_pos(phase, posno):
             posno = posno // 2
         pos[1][1][11] = (2 - parity) % 2
     elif phase == 1:
+        permno = posno % 495
+        perm = eperm1[permno]
+        for i in range(12):
+            pos[1][0][i] = perm[i]*4
+        posno = posno // 495
         for i in range(6,-1,-1):
             pos[0][1][i] = posno % 3
             parity = (parity + (posno % 3)) % 3
@@ -69,9 +150,18 @@ def pos_to_int(phase, pos):
             res = res * 2
             res = res + pos[1][1][i]
     elif phase == 1:
+        # count the corner twists
         for i in range(7):
             res = res * 3
             res = res + pos[0][1][i]
+        # find the permutation of the middle edges
+        res = res * 495
+        perm = [0] * 12
+        for i in range(12):
+            p = pos[1][0][i]
+            if p >= 4 and p <= 7:
+                perm[i] = 1
+        res = res + (bisect.bisect(eperm1, perm)-1)
     return res
             
 def phase_moves(phase):
@@ -86,7 +176,7 @@ def phase_moves(phase):
 
 def build_tables():
     global table
-    table_sizes = [2**11, 3**7]
+    table_sizes = [2**11, 3**7 * 495]
     table = [None]*4
     
     pos = [
