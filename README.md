@@ -1,3 +1,3 @@
 Programs for solving puzzles.
 
-thistlethwaite.py solve the Rubik's cube.
+thistlethwaite.py solves the Rubik's cube.
