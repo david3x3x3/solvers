@@ -71,12 +71,6 @@ def next_permutation(seq, pred=cmp):
                 raise StopIteration
     raise StopIteration
 
-z = [0]*8+[1]*4
-eperm1 = list(next_permutation(z))
-eperm1[0] = z # I don't know why next_permutation reverses the first item
-
-#n = bisect.bisect(x, [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0])-1
-
 def turn_once(pos,facenum):
     turn_table = [
         #           corner pos,      corner orient,
@@ -95,26 +89,28 @@ def turn_once(pos,facenum):
           [ [  1,  4,  9,  5 ], [  0,  0,  0,  0 ] ] ], #L
     ]
     #print('facenum = ' + str(facenum))
-    pos_copy = deepcopy(pos)
-    new_pos = deepcopy(pos)
+    #pos_copy = deepcopy(pos)
+    #new_pos = deepcopy(pos)
     for k in range(2): #corners and edges
         for j in range(4):
-            pos_copy[k][1][turn_table[facenum][k][0][j]] = \
-                (pos_copy[k][1][turn_table[facenum][k][0][j]] +
+            pos[k][1][turn_table[facenum][k][0][j]] = \
+                (pos[k][1][turn_table[facenum][k][0][j]] + 
                  turn_table[facenum][k][1][j]) % (3-k)
         for part in range(2): # piece num, orientation
-            for j in range(4):
-                new_pos[k][part][turn_table[facenum][k][0][(j+1)%4]] = \
-                    pos_copy[k][part][turn_table[facenum][k][0][j]]
-    return new_pos
+            m = pos[k][part][turn_table[facenum][k][0][3]]
+            for j in range(3,0,-1):
+                pos[k][part][turn_table[facenum][k][0][j]] = \
+                    pos[k][part][turn_table[facenum][k][0][j-1]]
+            pos[k][part][turn_table[facenum][k][0][0]] = m
+    return
 
 def turn(pos,face_times):
     face = face_times[0]
     times = int(face_times[1])
     facenum = "UFRDBL".index(face)
     for i in range(times):
-        pos = turn_once(pos, facenum)
-    return pos
+        turn_once(pos, facenum)
+    return
 
 def int_to_pos(phase, posno):
     parity = 0
@@ -176,9 +172,14 @@ def phase_moves(phase):
 
 def build_tables():
     global table
+    global eperm1
     table_sizes = [2**11, 3**7 * 495]
     table = [None]*4
     
+    z = [0]*8+[1]*4
+    eperm1 = list(next_permutation(z))
+    eperm1[0] = z # I don't know why next_permutation reverses the first item
+
     pos = [
         [ [ 0,1,2,3,4,5,6,7 ],
           [ 0,0,0,0,0,0,0,0 ] ],
@@ -188,7 +189,8 @@ def build_tables():
 
     # build the tables for each phase
     for phase in range(2):
-        print('phase_moves ' + str(phase) + ' = ' + str(phase_moves(phase)))
+        p_m = phase_moves(phase)
+        print('phase_moves ' + str(phase) + ' = ' + str(p_m))
         depth = 0
         table[phase] = [-1]*table_sizes[phase]
         table[phase][pos_to_int(phase,pos)] = 0
@@ -198,14 +200,20 @@ def build_tables():
             for i in range(table_sizes[phase]):
                 if table[phase][i] == depth:
                     pos = int_to_pos(phase, i)
-                    for move in phase_moves(phase):
-                        pos2 = turn(pos, move)
-                        posno2 = pos_to_int(phase, pos2)
-                        if table[phase][posno2] == -1:
-                            if depth == 0:
-                                print(move + ' gives ' + str(pos2))
-                            count = count + 1
-                            table[phase][posno2] = depth+1
+                    for faceno in range(6):
+                        face = ['U','F','R','D','B','L'][faceno]
+                        times = 0
+                        for times in range(4):
+                            turn(pos,face+'1')
+                            times = times + 1
+                            move = face + str(times)
+                            if move in p_m:
+                                posno = pos_to_int(phase, pos)
+                                if table[phase][posno] == -1:
+                                    if depth == 0:
+                                        print(move + ' gives ' + str(pos))
+                                    count = count + 1
+                                    table[phase][posno] = depth+1
             print('phase ' + str(phase) + ' ' + str(count) + ' positions at distance ' + str(depth+1))
             depth = depth + 1
 
@@ -213,6 +221,9 @@ def build_tables():
 def main():
     # corner order: URF UFL UBR ULB DFR DLF DRB DBL
     # edge order: UF UL UB UR FL BL BR FR DF DL DB DR
+
+    build_tables()
+
     pos = [
         [ [ 0,1,2,3,4,5,6,7 ],
           [ 0,0,0,0,0,0,0,0 ] ],
@@ -221,18 +232,16 @@ def main():
     ]
     print("pos = " + str(pos))
     print('turning U1')
-    pos = turn(pos, 'U1')
+    turn(pos, 'U1')
     print(str(pos))
     print('turning R1')
-    pos = turn(pos, 'R1')
+    turn(pos, 'R1')
     print(str(pos))
     posno = pos_to_int(1, pos)
     print('posno 1 = ' + str(posno))
     print('calling int_to_pos 1')
     pos = int_to_pos(1, posno)
     print("pos = " + str(pos))
-
-    build_tables()
 
     # random scramble
     pos = [
@@ -256,7 +265,7 @@ def main():
         count = count + 1
     print('scramble = ' + str(seq))
     for move in seq:
-        pos = turn(pos, move)
+        turn(pos, move)
         print(move + ': ' + str(pos))
 
     # solve
@@ -265,7 +274,8 @@ def main():
         dist = table[phase][pos_to_int(phase, pos)]
         while dist > 0:
             for move in phase_moves(phase):
-                pos2 = turn(pos, move)
+                pos2 = deepcopy(pos)
+                turn(pos2, move)
                 posno2 = pos_to_int(phase, pos2)
                 nextdist = table[phase][posno2]
                 if nextdist < dist:
