@@ -204,7 +204,7 @@ def build_tables():
                         face = ['U','F','R','D','B','L'][faceno]
                         times = 0
                         for times in range(4):
-                            turn(pos,face+'1')
+                            turn_once(pos, faceno)
                             times = times + 1
                             move = face + str(times)
                             if move in p_m:
