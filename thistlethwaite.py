@@ -144,6 +144,8 @@ def int_to_pos(phase, posno):
         # edge orbits
         perm = int_to_perm2[posno % 70]
         edges = [0,1,2,3,8,9,10,11]
+        for i in range(12):
+            pos[1][0][i] = 0
         for i in range(8):
             pos[1][0][edges[i]] = perm[i]
         # corner orbits
@@ -214,7 +216,6 @@ def build_tables():
     z = [0]*8+[1]*4
     int_to_perm1 = list(next_permutation(z))
     int_to_perm1[0] = z # I don't know why next_permutation reverses the first item
-    print('int_to_perm1 size = ' + str(len(int_to_perm1)))
     perm_to_int1 = [-1]*(2**12)
     for i in range(len(int_to_perm1)):
         p = int_to_perm1[i]
@@ -226,7 +227,6 @@ def build_tables():
     z = [0]*4+[1]*4
     int_to_perm2 = list(next_permutation(z))
     int_to_perm2[0] = z
-    print('int_to_perm2 size = ' + str(len(int_to_perm2)))
     perm_to_int2 = [-1]*(2**8)
     for i in range(len(int_to_perm2)):
         p = int_to_perm2[i]
@@ -292,25 +292,6 @@ def main():
 
     build_tables()
 
-    pos = [
-        [ [ 0,1,2,3,4,5,6,7 ],
-          [ 0,0,0,0,0,0,0,0 ] ],
-        [ [ 0,1,2,3,4,5,6,7,8,9,10,11 ],
-          [ 0,0,0,0,0,0,0,0,0,0,0,0 ] ]
-    ]
-    print("pos = " + str(pos))
-    print('turning U1')
-    turn(pos, 'U1')
-    print(str(pos))
-    print('turning R1')
-    turn(pos, 'R1')
-    print(str(pos))
-    posno = pos_to_int(1, pos)
-    print('posno 1 = ' + str(posno))
-    print('calling int_to_pos 1')
-    pos = int_to_pos(1, posno)
-    print("pos = " + str(pos))
-
     # random scramble
     pos = [
         [ [ 0,1,2,3,4,5,6,7 ],
@@ -332,16 +313,20 @@ def main():
         prev2 = prev1
         prev1 = faceno
         count = count + 1
-    print('scramble = ' + str(seq))
+    print('scramble = ' + ' '.join(seq))
     for move in seq:
         turn(pos, move)
         #print(move + ': ' + str(pos))
 
     # solve
+    print('solution = ', end='')
     for phase in range(3):
-        print('solving phase ' + str(phase))
+        if phase > 0:
+            print('/ ', end='')
+            #print('next phase')
         dist = table[phase][pos_to_int(phase, pos)]
         while dist > 0:
+            #print('solving from ' + str(int_to_pos(phase, pos_to_int(phase, pos))))
             for move in phase_moves(phase):
                 pos2 = deepcopy(pos)
                 turn(pos2, move)
@@ -351,9 +336,11 @@ def main():
                     #print('dist = ' + str(dist) + ', next dist = ' + str(nextdist))
                     nextmove = move
                     nextpos = pos2
-            print('move = ' + nextmove)
+            print(nextmove + ' ', end='')
+            #print(nextmove)
             dist = dist - 1
             pos = nextpos
             #print(pos)
+    print('')
     
 main()
