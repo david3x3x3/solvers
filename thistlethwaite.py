@@ -246,6 +246,12 @@ def build_tables():
 
     # build the tables for each phase
     for phase in range(3):
+        try:
+            exec(open('phase'+str(phase)+'.dat').read())
+        except FileNotFoundError:
+            print('building table for phase ' + str(phase))
+        else:
+            continue
         p_m = phase_moves(phase)
         print('phase_moves ' + str(phase) + ' = ' + str(p_m))
         depth = 0
@@ -275,6 +281,9 @@ def build_tables():
             # if phase == 1 and depth == 6:
             #     exit(0)
             depth = depth + 1
+        fp = open('phase'+str(phase)+'.dat','w')
+        fp.write('table[' + str(phase) + '] = ' + str(table[phase]));
+        fp.close
 
 
 def main():
@@ -309,26 +318,27 @@ def main():
         [ [ 0,1,2,3,4,5,6,7,8,9,10,11 ],
           [ 0,0,0,0,0,0,0,0,0,0,0,0 ] ]
     ]
-    prev1 = ''
-    prev2 = ''
+    prev1 = -1
+    prev2 = -1
     count = 0
     seq = []
     while count < 25:
-        face = sample(['U','F','R','D','B','L'], 1)[0]
-        if face == prev1:
+        faceno = randint(0,5)
+        if faceno == prev1 or (faceno//2 == prev1//2 and faceno == prev2):
             continue
-        times = randint(2, 3)
+        face = ['U','D','L','R','B','F'][faceno]
+        times = randint(1, 3)
         seq.append(face + str(times))
         prev2 = prev1
-        prev1 = face
+        prev1 = faceno
         count = count + 1
     print('scramble = ' + str(seq))
     for move in seq:
         turn(pos, move)
-        print(move + ': ' + str(pos))
+        #print(move + ': ' + str(pos))
 
     # solve
-    for phase in range(2):
+    for phase in range(3):
         print('solving phase ' + str(phase))
         dist = table[phase][pos_to_int(phase, pos)]
         while dist > 0:
