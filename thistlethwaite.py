@@ -121,17 +121,20 @@ def int_to_pos(phase, posno):
           [ 0,0,0,0,0,0,0,0,0,0,0,0 ] ]
     ]
     if phase == 0:
+        # decode edge orientation
         for i in range(10,-1,-1):
             pos[1][1][i] = posno % 2
             parity = (parity + posno % 2) % 2
             posno = posno // 2
         pos[1][1][11] = (2 - parity) % 2
     elif phase == 1:
+        # decode edge position
         permno = posno % 495
         perm = eperm1[permno]
         for i in range(12):
             pos[1][0][i] = perm[i]*4
         posno = posno // 495
+        # decode corner orientation
         for i in range(6,-1,-1):
             pos[0][1][i] = posno % 3
             parity = (parity + (posno % 3)) % 3
@@ -143,13 +146,11 @@ def pos_to_int(phase, pos):
     res = 0
     if phase == 0:
         for i in range(11):
-            res = res * 2
-            res = res + pos[1][1][i]
+            res = res * 2 + pos[1][1][i]
     elif phase == 1:
         # count the corner twists
         for i in range(7):
-            res = res * 3
-            res = res + pos[0][1][i]
+            res = res * 3 + pos[0][1][i]
         # find the permutation of the middle edges
         res = res * 495
         perm = [0] * 12
@@ -173,12 +174,19 @@ def phase_moves(phase):
 def build_tables():
     global table
     global eperm1
+    global eperm2
     table_sizes = [2**11, 3**7 * 495]
     table = [None]*4
     
     z = [0]*8+[1]*4
     eperm1 = list(next_permutation(z))
     eperm1[0] = z # I don't know why next_permutation reverses the first item
+    print('eperm1 size = ' + str(len(eperm1)))
+    
+    z = [0]*4+[1]*4
+    eperm2 = list(next_permutation(z))
+    eperm2[0] = z
+    print('eperm2 size = ' + str(len(eperm2)))
 
     pos = [
         [ [ 0,1,2,3,4,5,6,7 ],
@@ -210,8 +218,8 @@ def build_tables():
                             if move in p_m:
                                 posno = pos_to_int(phase, pos)
                                 if table[phase][posno] == -1:
-                                    if depth == 0:
-                                        print(move + ' gives ' + str(pos))
+                                    # if depth == 0:
+                                    #     print(move + ' gives ' + str(pos))
                                     count = count + 1
                                     table[phase][posno] = depth+1
             print('phase ' + str(phase) + ' ' + str(count) + ' positions at distance ' + str(depth+1))
