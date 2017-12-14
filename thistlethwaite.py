@@ -1,8 +1,6 @@
 from copy import deepcopy
 from random import *
 
-import bisect
-
 def cmp(a,b):
     return (a > b) - (a < b)
     
@@ -235,13 +233,6 @@ def build_tables():
             j = j * 2 + k
         perm_to_int2[j] = i
 
-    pos = [
-        [ [ 0,1,2,3,4,5,6,7 ],
-          [ 0,0,0,0,0,0,0,0 ] ],
-        [ [ 0,1,2,3,4,5,6,7,8,9,10,11 ],
-          [ 0,0,0,0,0,0,0,0,0,0,0,0 ] ]
-    ]
-
     # build the tables for each phase
     for phase in range(3):
         try:
@@ -255,6 +246,12 @@ def build_tables():
         print('phase_moves ' + str(phase) + ' = ' + str(p_m))
         depth = 0
         table[phase] = [-1]*table_sizes[phase]
+        pos = [
+            [ [ 0,1,2,3,4,5,6,7 ],
+              [ 0,0,0,0,0,0,0,0 ] ],
+            [ [ 0,1,2,3,4,5,6,7,8,9,10,11 ],
+              [ 0,0,0,0,0,0,0,0,0,0,0,0 ] ]
+        ]
         table[phase][pos_to_int(phase,pos)] = 0
         count = 1
         while count > 0:
@@ -281,10 +278,7 @@ def build_tables():
             #     exit(0)
             depth = depth + 1
         # save the table so we don't have to build it again
-        fp = open('phase'+str(phase)+'.dat','w')
-        fp.write('table[' + str(phase) + '] = ' + str(table[phase]));
-        fp.close
-
+        open('phase'+str(phase)+'.dat','w').write(('table[' + str(phase) + '] = ' + str(table[phase])).replace(" ",""))
 
 def main():
     # corner order: URF UFL UBR ULB DFR DLF DRB DBL
@@ -313,6 +307,7 @@ def main():
         prev2 = prev1
         prev1 = faceno
         count = count + 1
+    #seq = ['B1','D1','L2','U1','B3','F1','R2','F3','R1','F2','B1','U3','L1','F2','D2','L1','B2','L1','F3','B3','U2','F2','R1','U2','D2']
     print('scramble = ' + ' '.join(seq))
     for move in seq:
         turn(pos, move)
@@ -326,6 +321,7 @@ def main():
             #print('next phase')
         dist = table[phase][pos_to_int(phase, pos)]
         while dist > 0:
+            #print('solving from ' + str(pos))
             #print('solving from ' + str(int_to_pos(phase, pos_to_int(phase, pos))))
             for move in phase_moves(phase):
                 pos2 = deepcopy(pos)
