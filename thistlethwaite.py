@@ -130,7 +130,7 @@ def int_to_pos(phase, posno):
     elif phase == 1:
         # decode edge position
         permno = posno % 495
-        perm = eperm1[permno]
+        perm = int_to_perm1[permno]
         for i in range(12):
             pos[1][0][i] = perm[i]*4
         posno = posno // 495
@@ -143,14 +143,14 @@ def int_to_pos(phase, posno):
     elif phase == 2:
         # edge orbits
         permno = posno % 70
-        perm = eperm2[permno]
+        perm = int_to_perm2[permno]
         edges = [0,1,2,3,8,9,10,11]
         for i in range(8):
             j = edges[i]
             pos[1][0][j] = perm[i]
         # corner orbits
         permno = permno // 70
-        perm = eperm2[permno]
+        perm = int_to_perm2[permno]
         for i in range(8):
             pos[0][0][i] = perm[i]
     return pos
@@ -166,19 +166,21 @@ def pos_to_int(phase, pos):
             res = res * 3 + pos[0][1][i]
         # find the permutation of the middle edges
         res = res * 495
-        perm = [0] * 12
+        perm = 0
         for i in range(12):
             p = pos[1][0][i]
+            perm = perm * 2
             if p >= 4 and p <= 7:
-                perm[i] = 1
-        res = res + (bisect.bisect(eperm1, perm)-1)
+                perm = perm + 1
+        res = res + perm_to_int1[perm]
     elif phase == 2:
         # corners 0,3,5,6 and 1,2,4,7 are in different orbits
-        perm = [0]*8
+        perm = 0
         for i in range(7):
+            perm = perm * 2
             if pos[0][0][i] in [1,2,4,7]:
-                perm[i]=1
-        res = res + (bisect.bisect(eperm2, perm)-1)
+                perm = perm + 1
+        res = res + perm_to_int2[perm]
         perm = [0]*8
         # U and D edges in different orbits
         edges = [0,1,2,3,8,9,10,11]
@@ -186,7 +188,7 @@ def pos_to_int(phase, pos):
             j = edges[i]
             if pos[1][0][j] in [1,3,9,11]:
                 perm[i]=1
-        res = res*70 + (bisect.bisect(eperm2, perm)-1)
+        res = res*70 + (bisect.bisect(int_to_perm2, perm)-1)
         
     return res
             
@@ -204,20 +206,36 @@ def phase_moves(phase):
 
 def build_tables():
     global table
-    global eperm1
-    global eperm2
+    global int_to_perm1
+    global int_to_perm2
+    global perm_to_int1
+    global perm_to_int2
     table_sizes = [2**11, 3**7 * 495, 70 * 495]
     table = [None]*4
     
     z = [0]*8+[1]*4
-    eperm1 = list(next_permutation(z))
-    eperm1[0] = z # I don't know why next_permutation reverses the first item
-    print('eperm1 size = ' + str(len(eperm1)))
+    int_to_perm1 = list(next_permutation(z))
+    int_to_perm1[0] = z # I don't know why next_permutation reverses the first item
+    print('int_to_perm1 size = ' + str(len(int_to_perm1)))
+    perm_to_int1 = [-1]*(2**12)
+    for i in range(len(int_to_perm1)):
+        p = int_to_perm1[i]
+        j = 0
+        for k in p:
+            j = j * 2 + k
+        perm_to_int1[j] = i
     
     z = [0]*4+[1]*4
-    eperm2 = list(next_permutation(z))
-    eperm2[0] = z
-    print('eperm2 size = ' + str(len(eperm2)))
+    int_to_perm2 = list(next_permutation(z))
+    int_to_perm2[0] = z
+    print('int_to_perm2 size = ' + str(len(int_to_perm2)))
+    perm_to_int2 = [-1]*(2**8)
+    for i in range(len(int_to_perm)):
+        p = int_to_perm2[i]
+        j = 0
+        for k in p:
+            j = j * 2 + k
+        perm_to_int2[j] = i
 
     pos = [
         [ [ 0,1,2,3,4,5,6,7 ],
@@ -228,8 +246,6 @@ def build_tables():
 
     # build the tables for each phase
     for phase in range(3):
-        if phase == 1:
-            continue
         p_m = phase_moves(phase)
         print('phase_moves ' + str(phase) + ' = ' + str(p_m))
         depth = 0
@@ -256,6 +272,8 @@ def build_tables():
                                     count = count + 1
                                     table[phase][posno] = depth+1
             print('phase ' + str(phase) + ' ' + str(count) + ' positions at distance ' + str(depth+1))
+            # if phase == 1 and depth == 6:
+            #     exit(0)
             depth = depth + 1
 
 
