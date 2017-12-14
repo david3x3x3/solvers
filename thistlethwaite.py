@@ -230,7 +230,7 @@ def build_tables():
     int_to_perm2[0] = z
     print('int_to_perm2 size = ' + str(len(int_to_perm2)))
     perm_to_int2 = [-1]*(2**8)
-    for i in range(len(int_to_perm)):
+    for i in range(len(int_to_perm2)):
         p = int_to_perm2[i]
         j = 0
         for k in p:
