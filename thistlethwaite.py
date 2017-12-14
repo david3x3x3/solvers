@@ -142,15 +142,13 @@ def int_to_pos(phase, posno):
         pos[0][1][7] = (3 - parity) % 3
     elif phase == 2:
         # edge orbits
-        permno = posno % 70
-        perm = int_to_perm2[permno]
+        perm = int_to_perm2[posno % 70]
         edges = [0,1,2,3,8,9,10,11]
         for i in range(8):
-            j = edges[i]
-            pos[1][0][j] = perm[i]
+            pos[1][0][edges[i]] = perm[i]
         # corner orbits
-        permno = permno // 70
-        perm = int_to_perm2[permno]
+        posno = posno // 70
+        perm = int_to_perm2[posno]
         for i in range(8):
             pos[0][0][i] = perm[i]
     return pos
@@ -176,19 +174,19 @@ def pos_to_int(phase, pos):
     elif phase == 2:
         # corners 0,3,5,6 and 1,2,4,7 are in different orbits
         perm = 0
-        for i in range(7):
+        for i in range(8):
             perm = perm * 2
             if pos[0][0][i] in [1,2,4,7]:
                 perm = perm + 1
-        res = res + perm_to_int2[perm]
-        perm = [0]*8
+        res = res*70 + perm_to_int2[perm]
+        perm = 0
         # U and D edges in different orbits
         edges = [0,1,2,3,8,9,10,11]
         for i in range(8):
-            j = edges[i]
-            if pos[1][0][j] in [1,3,9,11]:
-                perm[i]=1
-        res = res*70 + (bisect.bisect(int_to_perm2, perm)-1)
+            perm = perm * 2
+            if pos[1][0][edges[i]] in [1,3,9,11]:
+                perm = perm + 1
+        res = res*70 + perm_to_int2[perm]
         
     return res
             
@@ -210,7 +208,7 @@ def build_tables():
     global int_to_perm2
     global perm_to_int1
     global perm_to_int2
-    table_sizes = [2**11, 3**7 * 495, 70 * 495]
+    table_sizes = [2**11, 3**7 * 495, 70 * 70]
     table = [None]*4
     
     z = [0]*8+[1]*4
@@ -247,6 +245,7 @@ def build_tables():
     # build the tables for each phase
     for phase in range(3):
         try:
+            # try to load the table from a file
             exec(open('phase'+str(phase)+'.dat').read())
         except FileNotFoundError:
             print('building table for phase ' + str(phase))
@@ -281,6 +280,7 @@ def build_tables():
             # if phase == 1 and depth == 6:
             #     exit(0)
             depth = depth + 1
+        # save the table so we don't have to build it again
         fp = open('phase'+str(phase)+'.dat','w')
         fp.write('table[' + str(phase) + '] = ' + str(table[phase]));
         fp.close
