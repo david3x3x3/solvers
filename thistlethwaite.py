@@ -140,6 +140,19 @@ def int_to_pos(phase, posno):
             parity = (parity + (posno % 3)) % 3
             posno = posno // 3
         pos[0][1][7] = (3 - parity) % 3
+    elif phase == 2:
+        # edge orbits
+        permno = posno % 70
+        perm = eperm2[permno]
+        edges = [0,1,2,3,8,9,10,11]
+        for i in range(8):
+            j = edges[i]
+            pos[1][0][j] = perm[i]
+        # corner orbits
+        permno = permno // 70
+        perm = eperm2[permno]
+        for i in range(8):
+            pos[0][0][i] = perm[i]
     return pos
 
 def pos_to_int(phase, pos):
@@ -159,6 +172,22 @@ def pos_to_int(phase, pos):
             if p >= 4 and p <= 7:
                 perm[i] = 1
         res = res + (bisect.bisect(eperm1, perm)-1)
+    elif phase == 2:
+        # corners 0,3,5,6 and 1,2,4,7 are in different orbits
+        perm = [0]*8
+        for i in range(7):
+            if pos[0][0][i] in [1,2,4,7]:
+                perm[i]=1
+        res = res + (bisect.bisect(eperm2, perm)-1)
+        perm = [0]*8
+        # U and D edges in different orbits
+        edges = [0,1,2,3,8,9,10,11]
+        for i in range(8):
+            j = edges[i]
+            if pos[1][0][j] in [1,3,9,11]:
+                perm[i]=1
+        res = res*70 + (bisect.bisect(eperm2, perm)-1)
+        
     return res
             
 def phase_moves(phase):
@@ -166,7 +195,9 @@ def phase_moves(phase):
     for faceno in range(6):
         face = ['U','F','R','D','B','L'][faceno]
         for times in range(1,4):
-            if phase > 0 and faceno % 3 == 1 and times % 2 != 0:
+            if (phase > 0 and faceno % 3 == 1 or
+                phase > 1 and faceno % 3 == 2 or
+                phase > 2) and times % 2 != 0:
                 continue
             moves.append(face + str(times))
     return moves
@@ -175,7 +206,7 @@ def build_tables():
     global table
     global eperm1
     global eperm2
-    table_sizes = [2**11, 3**7 * 495]
+    table_sizes = [2**11, 3**7 * 495, 70 * 495]
     table = [None]*4
     
     z = [0]*8+[1]*4
@@ -196,7 +227,9 @@ def build_tables():
     ]
 
     # build the tables for each phase
-    for phase in range(2):
+    for phase in range(3):
+        if phase == 1:
+            continue
         p_m = phase_moves(phase)
         print('phase_moves ' + str(phase) + ' = ' + str(p_m))
         depth = 0
